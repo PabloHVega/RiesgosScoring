@@ -5,6 +5,6 @@
 - No expliques el código si no se solicita.
 
 ## Estado del proyecto
-- Fase completada: A_08 (preproducción, notebook limpio).
-- Notebook: 03_notebooks/08_Preproduccion.ipynb (artefacto en 07_despliegue/artefacto_pipeline.pkl).
-- Siguiente paso: A_09 (generar funciones.py, reentrenamiento.py y ejecucion.py).
+- Fase completada: A_09 (scripts de despliegue generados a partir de 03_notebooks/08_Preproduccion.ipynb).
+- Scripts: 07_despliegue/funciones.py, reentrenamiento.py y ejecucion.py (genera predicciones.csv).
+- Siguiente paso: A11 (despliegue de la API).
