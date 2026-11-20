@@ -1,0 +1,4 @@
+[
+  {"id_cliente": 95167938, "principal": 12000.0, "tipo_interes": 13.49, "num_cuotas": " 36 months", "finalidad": "car", "vivienda": "MORTGAGE"},
+  {"id_cliente": 3379997, "principal": 35000.0, "tipo_interes": 19.05, "num_cuotas": " 36 months", "finalidad": "other", "vivienda": "RENT"}
+]

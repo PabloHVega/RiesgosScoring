@@ -46,7 +46,20 @@ def clientes():
     return HISTORIAL['id_cliente'].tolist()
 
 
-@app.post('/score')
+# Documenta el cuerpo de /score en /docs (1 registro o lista), ya que se parsea a mano con Request
+EJEMPLO = {'id_cliente': 95167938, 'principal': 12000.0, 'tipo_interes': 13.49,
+           'num_cuotas': ' 36 months', 'finalidad': 'car', 'vivienda': 'MORTGAGE'}
+CUERPO_SCORE = {'requestBody': {'required': True, 'content': {'application/json': {
+    'schema': {'oneOf': [Entrada.model_json_schema(),
+                         {'type': 'array', 'items': Entrada.model_json_schema()}]},
+    'examples': {
+        'un_cliente': {'summary': 'Un cliente', 'value': EJEMPLO},
+        'varios_clientes': {'summary': 'Varios clientes', 'value': [
+            EJEMPLO, {'id_cliente': 3379997, 'principal': 35000.0, 'tipo_interes': 19.05,
+                      'num_cuotas': ' 36 months', 'finalidad': 'other', 'vivienda': 'RENT'}]}}}}}}
+
+
+@app.post('/score', openapi_extra=CUERPO_SCORE)
 async def score(request: Request,
                 fields: Optional[List[str]] = Query(None, description='Columnas a devolver')):
     body = await request.json()
