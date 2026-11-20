@@ -33,3 +33,6 @@ reports/
 # Configuración de IDE
 .vscode/
 .idea/
+
+# Historial que necesita la API en Render
+!07_despliegue/deploy-ready/api_render/api/data/demo_03_riesgos.csv
