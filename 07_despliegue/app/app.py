@@ -5,6 +5,7 @@ La app NO contiene lógica de ML: formulario -> [dict] -> POST /score -> visuali
 PD, EAD, LGD y pérdida esperada los calcula la API; aquí solo se presentan.
 """
 
+import os
 import time
 from pathlib import Path
 
@@ -15,15 +16,21 @@ import streamlit as st
 # =====================================================================
 # CONFIGURACIÓN (única fuente de verdad de URLs y endpoints)
 # =====================================================================
-API_BASE_URL = "https://riesgosscoring.onrender.com"  # en local: http://127.0.0.1:8000
+# Variable de entorno API_BASE_URL (p. ej. http://127.0.0.1:8000 en local); si no existe, la de Render
+API_BASE_URL = os.environ.get("API_BASE_URL", "https://riesgosscoring.onrender.com")
 SCORE_ENDPOINT = "/score"
 WARMUP_ENDPOINT = "/health"
 DEFAULT_TIMEOUT = 60  # POST de scoring
 WARMUP_TIMEOUT = 10  # cada GET de warmup (menor que DEFAULT_TIMEOUT)
 WARMUP_MAX_WAIT = 180  # tiempo total máximo despertando la API
 ENABLE_WARMUP = True
-SCORING_RETRIES = 1  # 0-1
+SCORING_RETRIES = 1  # 0-1 (timeout o fallo de conexión)
+BLOQUEO_RETRIES = 3  # reintentos ante 429/503 (protección anti-bots de Render/Cloudflare)
 DEBUG_MODE = False
+# User-Agent propio e identificable en lugar del genérico "python-requests"
+HEADERS = {"User-Agent": "RiesgosScoring-App/1.0", "Accept": "application/json"}
+SESION = requests.Session()
+SESION.headers.update(HEADERS)
 
 APP_TITLE = "Risk Score Analyzer"
 ASSETS = Path(__file__).parent / "assets"
@@ -111,7 +118,7 @@ def wake_api():
     inicio, espera = time.time(), 2
     while time.time() - inicio < WARMUP_MAX_WAIT:
         try:
-            r = requests.get(API_BASE_URL + WARMUP_ENDPOINT, timeout=WARMUP_TIMEOUT)
+            r = SESION.get(API_BASE_URL + WARMUP_ENDPOINT, timeout=WARMUP_TIMEOUT)
             if r.status_code in (200, 204):
                 return True
         except requests.RequestException:
@@ -130,21 +137,28 @@ def enviar_scoring(payload):
         "error_message": None,
         "raw_text": None,
     }
-    for intento in range(SCORING_RETRIES + 1):
+    fallos_red, bloqueos = 0, 0
+    while True:
         try:
-            r = requests.post(
+            r = SESION.post(
                 API_BASE_URL + SCORE_ENDPOINT, json=payload, timeout=DEFAULT_TIMEOUT
             )
-        except requests.Timeout:
-            resultado["error_message"] = "La API ha tardado demasiado en responder."
-            continue
-        except requests.ConnectionError:
+        except (requests.Timeout, requests.ConnectionError) as e:
             resultado["error_message"] = (
-                "No se ha podido conectar con la API. Comprueba que está arrancada."
+                "La API ha tardado demasiado en responder."
+                if isinstance(e, requests.Timeout)
+                else "No se ha podido conectar con la API. Comprueba que está arrancada."
             )
+            fallos_red += 1
+            if fallos_red > SCORING_RETRIES:
+                return resultado
             continue
 
         resultado["status_code"], resultado["raw_text"] = r.status_code, r.text
+        if r.status_code in (429, 503) and bloqueos < BLOQUEO_RETRIES:
+            bloqueos += 1
+            time.sleep(3 * bloqueos)  # backoff: 3, 6, 9 s
+            continue
         if r.status_code == 200:
             try:
                 resultado.update(ok=True, data=r.json(), error_message=None)
@@ -160,12 +174,15 @@ def enviar_scoring(payload):
             resultado["error_message"] = (
                 "Los datos enviados no son compatibles con la API (payload incompatible)."
             )
+        elif r.status_code == 429:
+            resultado["error_message"] = (
+                "La API está limitando las peticiones (429). Espera unos segundos y vuelve a intentarlo."
+            )
         else:
             resultado["error_message"] = (
                 f"La API ha devuelto un error ({r.status_code})."
             )
-        return resultado  # solo se reintenta ante timeout o fallo de conexión
-    return resultado
+        return resultado
 
 
 # =====================================================================
