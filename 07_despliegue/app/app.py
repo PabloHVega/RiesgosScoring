@@ -14,7 +14,7 @@ import streamlit as st
 # =====================================================================
 # CONFIGURACIÓN (única fuente de verdad de URLs y endpoints)
 # =====================================================================
-API_BASE_URL = 'http://127.0.0.1:8000'   # en Render: sustituir por https://riesgosscoring.onrender.com
+API_BASE_URL = 'https://riesgosscoring.onrender.com'   # en local: http://127.0.0.1:8000
 SCORE_ENDPOINT = '/score'
 WARMUP_ENDPOINT = '/health'
 DEFAULT_TIMEOUT = 60       # POST de scoring
