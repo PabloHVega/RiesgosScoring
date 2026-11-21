@@ -12,7 +12,7 @@
   - Render API: Root 07_despliegue/deploy-ready/api_render | Build pip install -r requirements.txt | Start uvicorn api.main:app --host 0.0.0.0 --port $PORT | PYTHON_VERSION 3.12.16
 
 Fase actual: A_12 completada — App Streamlit
-- App: 07_despliegue/app/ (consume http://127.0.0.1:8000/score, entrada [{...}])
-- Local: API en terminal 1 (api_render, uvicorn api.main:app --reload); app en terminal 2 (07_despliegue/app, streamlit run app.py)
-- Render app: Root 07_despliegue/app | Build pip install -r requirements.txt | Start streamlit run app.py --server.port $PORT --server.address 0.0.0.0 | PYTHON_VERSION 3.12.16
-- Pendiente en Render: sustituir API_BASE_URL por https://riesgosscoring.onrender.com
+- App: 07_despliegue/app/ (consume <API_BASE_URL>/score, entrada [{...}]). API_BASE_URL se lee de la variable de entorno; por defecto https://riesgosscoring.onrender.com
+- Local: API en terminal 1 (api_render, uvicorn api.main:app --reload); app en terminal 2 (07_despliegue/app, con API_BASE_URL=http://127.0.0.1:8000, streamlit run app.py)
+- Render app (desplegada y funcionando, auto-deploy): Root 07_despliegue/app | Build pip install -r requirements.txt | Start streamlit run app.py --server.port $PORT --server.address 0.0.0.0 | PYTHON_VERSION 3.12.16
+- Modelo PD: sin tipo_interes, max_iter=1000; OrdinalEncoder unknown_value=-1. AUC validación 0,6991. funciones.py y 08_Preproduccion.ipynb alineados
