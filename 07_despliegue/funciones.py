@@ -81,21 +81,23 @@ def crear_variables(df):
 # =====================================================================
 # 3. TRANSFORMACIÓN DE VARIABLES
 # =====================================================================
-def transformar_variables():
+def transformar_variables(excluir=()):
     """Devuelve (sin ajustar) el ColumnTransformer común a los tres modelos.
     OHE en categóricas nominales, OrdinalEncoder + MinMax en antigüedad y rating,
     MinMax en numéricas y Binarizer en num_derogatorios. El resto de columnas se descarta.
+    excluir: variables numéricas que no usa un modelo concreto (p. ej. tipo_interes en PD).
     """
     var_ohe = ['ingresos_verificados', 'vivienda', 'finalidad', 'num_cuotas']
     var_oe = ['antigüedad_empleo', 'rating']
-    var_mms = ['ingresos', 'DTI', 'num_lineas_credito', 'porc_uso_revolving', 'principal', 'tipo_interes', 'imp_cuota']
+    var_mms = [v for v in ['ingresos', 'DTI', 'num_lineas_credito', 'porc_uso_revolving', 'principal',
+                           'tipo_interes', 'imp_cuota'] if v not in excluir]
     var_bin = ['num_derogatorios']
 
     orden_antigüedad_empleo = ['desconocido', '< 1 year', '1 year', '2 years', '3 years', '4 years',
                                '5 years', '6 years', '7 years', '8 years', '9 years', '10+ years']
     orden_rating = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
     oe_mms = Pipeline([('oe', OrdinalEncoder(categories=[orden_antigüedad_empleo, orden_rating],
-                                             handle_unknown='use_encoded_value', unknown_value=12)),
+                                             handle_unknown='use_encoded_value', unknown_value=-1)),
                        ('mms', MinMaxScaler())])
 
     return ColumnTransformer([('ohe', OneHotEncoder(sparse_output=False, handle_unknown='ignore'), var_ohe),
@@ -108,13 +110,13 @@ def transformar_variables():
 # =====================================================================
 # 4. MODELIZACIÓN
 # =====================================================================
-def modelizar(x, y, algoritmo, parrilla, cv, scoring, n_iter, nombre):
+def modelizar(x, y, algoritmo, parrilla, cv, scoring, n_iter, nombre, excluir=()):
     """Construye Pipeline([transformar, algoritmo]) y busca hiperparámetros con RandomizedSearchCV.
-    Recibe x, y, el algoritmo, su parrilla, la validación cruzada, la métrica, n_iter y el
-    nombre del modelo. Muestra la métrica de CV y los mejores hiperparámetros.
+    Recibe x, y, el algoritmo, su parrilla, la validación cruzada, la métrica, n_iter, el
+    nombre del modelo y las variables a excluir. Muestra la métrica de CV y los mejores hiperparámetros.
     Devuelve el mejor pipeline reentrenado con todos los datos recibidos.
     """
-    pipe = Pipeline([('transformar', transformar_variables()), ('algoritmo', algoritmo)])
+    pipe = Pipeline([('transformar', transformar_variables(excluir)), ('algoritmo', algoritmo)])
     busqueda = RandomizedSearchCV(pipe, parrilla, n_iter=n_iter, cv=cv, scoring=scoring,
                                   n_jobs=-1, random_state=42)
     busqueda.fit(x, y)
@@ -142,10 +144,12 @@ def lanzar_entrenamiento(df):
                     'algoritmo__l2_regularization': [0, 0.25, 0.5, 0.75, 1]}
 
     artefacto = {}
+    # PD sin tipo_interes: el interés lo fija el banco según el rating y, con el rating en el modelo,
+    # su coeficiente salía negativo (a menor interés, más PD). El interés sigue entrando vía imp_cuota.
     artefacto['pd'] = modelizar(x, df['target_pd'],
-                                LogisticRegression(solver='saga', penalty='elasticnet'), parrilla_pd,
+                                LogisticRegression(solver='saga', penalty='elasticnet', max_iter=1000), parrilla_pd,
                                 StratifiedKFold(n_splits=5, shuffle=True, random_state=42), 'roc_auc',
-                                n_iter=15, nombre='PD')
+                                n_iter=15, nombre='PD', excluir=['tipo_interes'])
     for modelo in ['ead', 'lgd']:
         artefacto[modelo] = modelizar(x[defaults], df.loc[defaults, 'target_' + modelo],
                                       HistGradientBoostingRegressor(min_samples_leaf=50, scoring='neg_mean_absolute_percentage_error'),

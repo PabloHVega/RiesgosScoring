@@ -5,6 +5,14 @@
 - No expliques el código si no se solicita.
 
 ## Estado del proyecto
-- Fase completada: A_09 (scripts de despliegue generados a partir de 03_notebooks/08_Preproduccion.ipynb).
-- Scripts: 07_despliegue/funciones.py, reentrenamiento.py y ejecucion.py (genera predicciones.csv).
-- Siguiente paso: A11 (despliegue de la API).
+- A_09: scripts 07_despliegue/funciones.py, reentrenamiento.py y ejecucion.py (genera 06_resultados/scoring.csv).
+- A11 completada — API FastAPI en 07_despliegue/deploy-ready/api_render, desplegada en https://riesgosscoring.onrender.com
+  - Endpoints: /health, /debug, /clientes, POST /score. Entrada [{id_cliente, principal, tipo_interes, num_cuotas, finalidad, vivienda}]; historial en api/data/demo_03_riesgos.csv; imp_cuota por sistema francés.
+  - Salida: [{id_cliente, pd, ead, lgd, perdida_esperada}].
+  - Render API: Root 07_despliegue/deploy-ready/api_render | Build pip install -r requirements.txt | Start uvicorn api.main:app --host 0.0.0.0 --port $PORT | PYTHON_VERSION 3.12.16
+
+Fase actual: A_12 completada — App Streamlit
+- App: 07_despliegue/app/ (consume http://127.0.0.1:8000/score, entrada [{...}])
+- Local: API en terminal 1 (api_render, uvicorn api.main:app --reload); app en terminal 2 (07_despliegue/app, streamlit run app.py)
+- Render app: Root 07_despliegue/app | Build pip install -r requirements.txt | Start streamlit run app.py --server.port $PORT --server.address 0.0.0.0 | PYTHON_VERSION 3.12.16
+- Pendiente en Render: sustituir API_BASE_URL por https://riesgosscoring.onrender.com

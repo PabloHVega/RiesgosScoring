@@ -1,0 +1,300 @@
+{
+  "app": {
+    "title": "DS4B Risk Score Analyzer",
+    "page_config": {
+      "page_title": "DS4B Risk Score Analyzer",
+      "layout": "wide",
+      "initial_sidebar_state": "expanded"
+    }
+  },
+  "sidebar": {
+    "components": [
+      {
+        "id": "logo",
+        "type": "st.image",
+        "params": {
+          "image": "assets/logo.png",
+          "use_container_width": true
+        }
+      },
+      {
+        "id": "sidebar_title",
+        "type": "st.header",
+        "params": {
+          "body": "Simulador de riesgo crediticio"
+        }
+      },
+      {
+        "id": "cliente",
+        "type": "st.selectbox",
+        "params": {
+          "label": "Seleccionar cliente",
+          "options": "<lista_clientes>",
+          "key": "cliente"
+        }
+      },
+      {
+        "type": "st.divider"
+      },
+      {
+        "id": "seccion_prestamo",
+        "type": "st.subheader",
+        "params": {
+          "body": "Características del préstamo"
+        }
+      },
+      {
+        "id": "importe",
+        "type": "st.slider",
+        "params": {
+          "label": "Importe (€)",
+          "min_value": 1000,
+          "max_value": 50000,
+          "value": 10000,
+          "step": 500,
+          "key": "importe"
+        }
+      },
+      {
+        "id": "tipo_interes",
+        "type": "st.slider",
+        "params": {
+          "label": "Tipo de interés (%)",
+          "min_value": 0.0,
+          "max_value": 30.0,
+          "value": 10.0,
+          "step": 0.1,
+          "key": "tipo_interes"
+        }
+      },
+      {
+        "id": "duracion",
+        "type": "st.radio",
+        "note": "En el boceto son casillas, pero la duración es única: radio horizontal",
+        "params": {
+          "label": "Duración (meses)",
+          "options": [
+            12,
+            24,
+            36,
+            48,
+            60
+          ],
+          "index": 2,
+          "horizontal": true,
+          "key": "duracion"
+        }
+      },
+      {
+        "type": "st.divider"
+      },
+      {
+        "id": "seccion_perfil",
+        "type": "st.subheader",
+        "params": {
+          "body": "Perfil del préstamo"
+        }
+      },
+      {
+        "id": "finalidad",
+        "type": "st.selectbox",
+        "params": {
+          "label": "Finalidad",
+          "options": "<lista_finalidades>",
+          "key": "finalidad"
+        }
+      },
+      {
+        "id": "situacion_vivienda",
+        "type": "st.radio",
+        "note": "En el boceto son casillas, pero es una opción única: radio horizontal",
+        "params": {
+          "label": "Situación vivienda",
+          "options": [
+            "Hipoteca",
+            "Propia",
+            "Alquiler"
+          ],
+          "horizontal": true,
+          "key": "situacion_vivienda"
+        }
+      },
+      {
+        "id": "calcular",
+        "type": "st.button",
+        "params": {
+          "label": "Calcular riesgo",
+          "type": "primary",
+          "use_container_width": true,
+          "key": "calcular"
+        }
+      }
+    ]
+  },
+  "main": {
+    "components": [
+      {
+        "id": "titulo",
+        "type": "st.title",
+        "params": {
+          "body": "DS4B Risk Score Analyzer"
+        }
+      },
+      {
+        "id": "resumen",
+        "type": "st.container",
+        "params": {
+          "border": true
+        },
+        "children": [
+          {
+            "id": "perdidas_esperadas",
+            "type": "st.metric",
+            "params": {
+              "label": "Pérdidas esperadas (EL)",
+              "value": "{EL_eur} €"
+            },
+            "formula": "EL = PD × LGD × EAD"
+          },
+          {
+            "id": "nivel_riesgo",
+            "type": "custom.badge",
+            "render_with": "st.markdown(unsafe_allow_html=True)",
+            "params": {
+              "label": "Riesgo de tipo",
+              "value": "{nivel_riesgo}"
+            },
+            "color_map": {
+              "alto": {
+                "color": "#D32F2F",
+                "text": "Riesgo alto"
+              },
+              "medio": {
+                "color": "#F9A825",
+                "text": "Riesgo medio"
+              },
+              "bajo": {
+                "color": "#2E7D32",
+                "text": "Riesgo bajo"
+              }
+            }
+          },
+          {
+            "id": "impacto_perdida",
+            "type": "custom.progress_with_threshold",
+            "render_with": "plotly.graph_objects (barra horizontal + línea vertical en el umbral)",
+            "params": {
+              "label": "Impacto de la pérdida sobre el préstamo",
+              "value_eur": "{EL_eur}",
+              "value_pct": "{EL_pct}",
+              "threshold_pct": 50,
+              "threshold_label": "Umbral 50%"
+            }
+          },
+          {
+            "id": "porcentaje_principal",
+            "type": "st.markdown",
+            "params": {
+              "body": "**Porcentaje sobre el principal:** {EL_pct} %"
+            }
+          }
+        ]
+      },
+      {
+        "id": "fila_gauges",
+        "type": "st.columns",
+        "params": {
+          "spec": 3
+        },
+        "children": [
+          {
+            "column": 0,
+            "id": "gauge_pd",
+            "type": "plotly.graph_objects.Indicator",
+            "render_with": "st.plotly_chart",
+            "params": {
+              "title": "Probabilidad de impago (PD)",
+              "mode": "gauge+number",
+              "value": "{PD_pct}",
+              "number_suffix": " %",
+              "gauge_range": [
+                0,
+                100
+              ]
+            }
+          },
+          {
+            "column": 1,
+            "id": "gauge_ead",
+            "type": "plotly.graph_objects.Indicator",
+            "render_with": "st.plotly_chart",
+            "params": {
+              "title": "Exposición al incumplimiento (EAD)",
+              "mode": "gauge+number",
+              "value": "{EAD_pct}",
+              "number_suffix": " %",
+              "gauge_range": [
+                0,
+                100
+              ]
+            },
+            "below": {
+              "type": "st.markdown",
+              "params": {
+                "body": "{EAD_eur} €"
+              }
+            }
+          },
+          {
+            "column": 2,
+            "id": "gauge_lgd",
+            "type": "plotly.graph_objects.Indicator",
+            "render_with": "st.plotly_chart",
+            "params": {
+              "title": "Pérdida dado el impago (LGD)",
+              "mode": "gauge+number",
+              "value": "{LGD_pct}",
+              "number_suffix": " %",
+              "gauge_range": [
+                0,
+                100
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "state": {
+    "inputs": [
+      "cliente",
+      "importe",
+      "tipo_interes",
+      "duracion",
+      "finalidad",
+      "situacion_vivienda"
+    ],
+    "trigger": "calcular",
+    "outputs": [
+      "PD_pct",
+      "EAD_pct",
+      "EAD_eur",
+      "LGD_pct",
+      "EL_eur",
+      "EL_pct",
+      "nivel_riesgo"
+    ],
+    "persist_results_in": "st.session_state"
+  },
+  "decisiones_contrato": {
+    "fecha": "2026-11-21",
+    "duracion": "Se muestran 12, 24, 36, 48 y 60 meses; el modelo solo conoce 36 y 60: 12/24 se envían como 36 y 48 como 60, con aviso en la UI",
+    "nivel_riesgo": "Según EL % sobre el importe: bajo < 5 %, medio 5-10 %, alto > 10 %",
+    "impacto_perdida": "Umbral en 10 % (inicio de riesgo alto); escala 0-30 % (o hasta el valor si lo supera)",
+    "rangos": "Importe 1.000-40.000 € e interés 1,0-31,0 %; defaults 10.000 €, 10 % y 36 meses",
+    "mapeos": "vivienda Hipoteca/Propia/Alquiler -> MORTGAGE/OWN/RENT; finalidad en castellano -> categorías reales; importe -> principal",
+    "derivados_presentacion": "EAD_eur = EAD x importe; EL_pct = perdida_esperada / importe x 100",
+    "fecha_revision": "2026-11-21",
+    "modelo_pd": "Reentrenado sin tipo_interes (coeficiente negativo por colinealidad con rating). El interés influye vía imp_cuota y en EAD. AUC validación 0,7016 -> 0,6991"
+  }
+}
